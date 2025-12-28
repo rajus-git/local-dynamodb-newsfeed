@@ -1,14 +1,13 @@
 services:
 
   dynamodb-local:
-    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath ./data"
-    image: "amazon/dynamodb-local:latest"
     container_name: dynamodb-local
+    image: amazon/dynamodb-local:latest
     ports:
       - "8000:8000"
+    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath /home/dynamodblocal/data"
     volumes:
-      - "./docker/dynamodb:/home/dynamodblocal/data"
-    working_dir: /home/dynamodblocal
+      - ./docker/dynamodb:/home/dynamodblocal/data
 
   app:
     build: .                      # builds from the Dockerfile
@@ -25,7 +24,6 @@ services:
       # - aws.dynamodb.endpoint=http://dynamodb-local:8000
     depends_on:
       - dynamodb-local
-    restart: unless-stopped
 
   nginx:
     image: nginx:alpine
@@ -36,4 +34,3 @@ services:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - app
-    restart: unless-stopped
