@@ -1,12 +1,18 @@
 package com.feed.news.repository;
 
 import com.feed.news.domain.Post;
+import jdk.jshell.spi.ExecutionControl;
 import org.springframework.stereotype.Repository;
 import software.amazon.awssdk.enhanced.dynamodb.*;
+import software.amazon.awssdk.enhanced.dynamodb.document.EnhancedDocument;
 import software.amazon.awssdk.enhanced.dynamodb.model.Page;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 
 @Repository
 public class PostRepository {
@@ -52,5 +58,52 @@ public class PostRepository {
                 ).iterator().next();
 
         return page.items();
+    }
+
+    public PagedResult<Post> getRecentPostsByCreator(
+            String creatorId,
+            int limit,
+            String nextToken) {
+
+        Map<String, AttributeValue> exclusiveStartKey;
+
+        // Decode token INSIDE repository
+        if (nextToken != null) {
+            String json = new String(
+                    Base64.getDecoder().decode(nextToken),
+                    StandardCharsets.UTF_8
+            );
+            exclusiveStartKey =
+                    EnhancedDocument.fromJson(json).toMap();
+        } else {
+            exclusiveStartKey = null;
+        }
+
+        QueryConditional condition =
+                QueryConditional.keyEqualTo(
+                        Key.builder().partitionValue(creatorId).build()
+                );
+
+        Page<Post> page =
+                creatorIndex.query(r -> r
+                        .queryConditional(condition)
+                        .scanIndexForward(false)
+                        .limit(limit)
+                        .exclusiveStartKey(exclusiveStartKey)
+                ).iterator().next();
+
+        // Encode new token INSIDE repository
+        String newNextToken = null;
+        if (page.lastEvaluatedKey() != null && !page.lastEvaluatedKey().isEmpty()) {
+            String json =
+                    EnhancedDocument
+                            .fromAttributeValueMap(page.lastEvaluatedKey())
+                            .toJson();
+
+            newNextToken = Base64.getEncoder()
+                    .encodeToString(json.getBytes(StandardCharsets.UTF_8));
+        }
+
+        return new PagedResult<>(page.items(), newNextToken);
     }
 }
