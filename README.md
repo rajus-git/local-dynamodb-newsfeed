@@ -5,8 +5,15 @@ A simple local development stack for a Spring Boot REST API that connects to **D
 ## Build the Spring Boot JAR
   `./mvnw clean package`
 
+## Run the Spring Boot App
+  `$env:SPRING_PROFILES_ACTIVE="local"` // Set local profile
+  `.\mvnw spring-boot:run` // run
+
 ## Start the stack
   `docker compose up --build -d`
+
+  To run just DynamoDB without any dependencies you can do: 
+  `docker compose up dynamodb-local --no-deps -d`
 
 ## Access the API
 
@@ -14,7 +21,8 @@ A simple local development stack for a Spring Boot REST API that connects to **D
   http://localhost:8080/api/greeting
 - Direct to Spring Boot (for debugging):
   http://localhost:8081/api/greeting
-- Accessing DynamoDB Local:
+
+## Accessing DynamoDB Local:
 
   Install AWS CLI and run:
   ```
@@ -24,6 +32,11 @@ A simple local development stack for a Spring Boot REST API that connects to **D
 
   Alternatively, install NoSQL Workbench for DynamoDB and go to Operation Builder to connect. 
   The web-based shell for DynamoDB Local has been deprecated. 
+
+## Accessing Redis
+
+  Connect to redis by running `docker exec -it redis redis-cli` 
+  This runs redis-cli using which you can run redis commands. 
 
 ## Stop everything
     docker compose down
