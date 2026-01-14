@@ -1,10 +1,7 @@
 package com.feed.news.service;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import com.feed.news.repository.PagedResult;
 import org.springframework.stereotype.Service;
@@ -62,6 +59,7 @@ public class PostService {
 
         // 1) Create and save post
         Post post = new Post();
+        post.setId(UUID.randomUUID().toString());
         post.setCreatorId(creatorId);
         post.setContent(content);
         post.setCreatedAt(Instant.now());
