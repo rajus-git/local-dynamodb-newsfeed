@@ -83,7 +83,6 @@ public class PostService {
             Page<Follow> page = pages.next();
 
             for (Follow follow : page.items()) {
-
                 PrecomputedFeed feedItem = new PrecomputedFeed();
                 feedItem.setUserId(follow.getUserFollowing());
                 feedItem.setPostId(post.getId());
@@ -92,18 +91,8 @@ public class PostService {
                         post.getCreatedAt().toEpochMilli() + "#" + post.getId()
                 );
 
-                batch.add(feedItem);
-
-                if (batch.size() == FEED_BATCH_SIZE) {
-                    feedRepository.addToFeeds(batch);
-                    batch.clear();
-                }
+                feedRepository.putIfAbsent(feedItem);
             }
-        }
-
-        // flush remainder
-        if (!batch.isEmpty()) {
-            feedRepository.addToFeeds(batch);
         }
     }
 }

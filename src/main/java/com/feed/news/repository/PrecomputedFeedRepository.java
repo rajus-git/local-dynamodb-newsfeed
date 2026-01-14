@@ -10,16 +10,14 @@ import org.springframework.stereotype.Repository;
 
 import com.feed.news.domain.PrecomputedFeed;
 
-import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
-import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
-import software.amazon.awssdk.enhanced.dynamodb.Key;
-import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
+import software.amazon.awssdk.enhanced.dynamodb.*;
 import software.amazon.awssdk.enhanced.dynamodb.document.EnhancedDocument;
 import software.amazon.awssdk.enhanced.dynamodb.model.BatchWriteItemEnhancedRequest;
 import software.amazon.awssdk.enhanced.dynamodb.model.Page;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
 import software.amazon.awssdk.enhanced.dynamodb.model.WriteBatch;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException;
 
 @Repository
 public class PrecomputedFeedRepository {
@@ -35,6 +33,27 @@ public class PrecomputedFeedRepository {
                 "precomputedFeed",
                 TableSchema.fromBean(PrecomputedFeed.class)
         );
+    }
+
+    /**
+     * Idempotent write: safe to retry.
+     */
+    public void putIfAbsent(PrecomputedFeed item) {
+        try {
+            table.putItem(r -> r
+                    .item(item)
+                    .conditionExpression(
+                            Expression.builder()
+                                    .expression("attribute_not_exists(#pk)")
+                                    .expressionNames(
+                                            Map.of("#pk", "userId")
+                                    )
+                                    .build()
+                    )
+            );
+        } catch (ConditionalCheckFailedException e) {
+            // Item already exists → idempotent success
+        }
     }
 
     public void addToFeeds(List<PrecomputedFeed> items) {
