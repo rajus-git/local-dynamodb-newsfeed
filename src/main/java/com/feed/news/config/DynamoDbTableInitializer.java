@@ -1,5 +1,6 @@
 package com.feed.news.config;
 
+import com.feed.news.domain.PrecomputedFeed;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
@@ -35,6 +36,7 @@ public class DynamoDbTableInitializer implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         createPostsTable();
         createFollowsTable();
+        createPrecomputedFeedTable();
     }
 
     private void createPostsTable() {
@@ -96,6 +98,31 @@ public class DynamoDbTableInitializer implements ApplicationRunner {
             System.out.println("ℹ️ Table already exists: follows");
         }
     }
+
+    private void createPrecomputedFeedTable() {
+
+        DynamoDbTable<PrecomputedFeed> table =
+                enhancedClient.table(
+                        "precomputedFeed",
+                        TableSchema.fromBean(PrecomputedFeed.class)
+                );
+
+        try {
+            table.createTable(b -> b
+                    .provisionedThroughput(t ->
+                            t.readCapacityUnits(5L)
+                                    .writeCapacityUnits(5L)
+                    )
+            );
+
+            waitForTable("precomputedFeed");
+            System.out.println("✅ Created table: precomputedFeed");
+
+        } catch (ResourceInUseException e) {
+            System.out.println("ℹ️ Table already exists: precomputedFeed");
+        }
+    }
+
 
     private void waitForTable(String tableName) {
         dynamoDbClient.waiter().waitUntilTableExists(

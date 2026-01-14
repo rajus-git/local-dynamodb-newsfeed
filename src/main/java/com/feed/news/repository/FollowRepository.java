@@ -6,6 +6,7 @@ import software.amazon.awssdk.enhanced.dynamodb.*;
 import software.amazon.awssdk.enhanced.dynamodb.model.Page;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
 
+import java.util.Iterator;
 import java.util.List;
 
 @Repository
@@ -47,6 +48,19 @@ public class FollowRepository {
         return item != null;
     }
 
+    public Iterator<Page<Follow>> iterateFollowersOf(String userId) {
+
+        QueryConditional condition =
+                QueryConditional.keyEqualTo(
+                        Key.builder().partitionValue(userId).build()
+                );
+
+        return reverseIndex.query(r -> r
+                .queryConditional(condition)
+        ).iterator();
+    }
+
+    /// people who follow this user
     public List<Follow> getFollowers(String userId, int limit) {
 
         QueryConditional condition =
@@ -65,6 +79,7 @@ public class FollowRepository {
         return page.items();
     }
 
+    /// people this user follows
     public List<Follow> getFollowing(String userId, int limit) {
 
         QueryConditional condition =

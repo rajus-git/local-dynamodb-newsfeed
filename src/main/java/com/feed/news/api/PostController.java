@@ -1,40 +1,31 @@
 package com.feed.news.api;
 
-import java.time.Instant;
-import java.util.Base64;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import com.feed.news.repository.PagedResult;
 import org.springframework.web.bind.annotation.*;
 
 import com.feed.news.domain.Post;
-import com.feed.news.repository.PostRepository;
+import com.feed.news.repository.PagedResult;
+import com.feed.news.service.PostService;
 
 @RestController
 @RequestMapping
 public class PostController {
 
-    private final PostRepository postRepository;
+    private final PostService postService;
 
-    public PostController(PostRepository postRepository) {
-        this.postRepository = postRepository;
+    public PostController(PostService postService) {
+        this.postService = postService;
     }
 
+    // CREATE POST
     @PostMapping("/posts")
     public Post createPost(@RequestBody CreatePostRequest request) {
-
-        Post post = new Post();
-        post.setId(UUID.randomUUID().toString());
-        post.setCreatorId(request.getCreatorId());
-        post.setContent(request.getContent());
-        post.setCreatedAt(Instant.now());
-
-        postRepository.save(post);
-        return post;
+        return postService.createPost(
+                request.getCreatorId(),
+                request.getContent()
+        );
     }
 
+    // HOME FEED
     @GetMapping("/feed/{userId}")
     public PagedResponse<Post> getFeed(
             @PathVariable String userId,
@@ -42,11 +33,13 @@ public class PostController {
             @RequestParam(required = false) String nextToken) {
 
         PagedResult<Post> result =
-                postRepository.getRecentPostsByCreator(userId, limit, nextToken);
+                postService.getFeed(userId, limit, nextToken);
 
         return new PagedResponse<>(
                 result.getItems(),
                 result.getNextToken()
         );
     }
+
+    // PROFILE FEED
 }
