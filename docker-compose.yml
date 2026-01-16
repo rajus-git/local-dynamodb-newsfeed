@@ -36,9 +36,60 @@ services:
       - app
 
   redis:
-      image: redis:8.4.0-alpine
-      container_name: redis
-      ports:
-        - "6379:6379"
-      volumes:
-        - ./docker/redis:/data  # useful only to enable persistence, will additionally need to add "command" attribute to start redis with persistence.
+    image: redis:8.4.0-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./docker/redis:/data  # useful only to enable persistence, will additionally need to add "command" attribute to start redis with persistence.
+
+  kafka:
+    image: apache/kafka:4.1.1
+    container_name: kafka
+    hostname: kafka
+    ports:
+      - "9092:9092"     # Host access
+      - "29092:29092"  # Container-to-container access
+      - "9093:9093"   # Controller (KRaft)
+
+    environment:
+      # ----- KRaft Core -----
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_NODE_ID: "1"
+      KAFKA_CLUSTER_ID: "dev-cluster-1"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+
+      # ----- Listeners -----
+      KAFKA_LISTENERS: "PLAINTEXT://0.0.0.0:9092,INTERNAL://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://localhost:9092,INTERNAL://kafka:29092"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "INTERNAL"
+
+      # ----- Storage -----
+      KAFKA_LOG_DIRS: "/var/lib/kafka/data"
+
+      # ----- Dev-friendly defaults -----
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+
+      # ----- Memory -----
+      KAFKA_JVM_PERFORMANCE_OPTS: "-Xms256m -Xmx512m"
+
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: "local"
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "kafka:29092"
+    depends_on:
+      - kafka
+
+volumes:
+  kafka-data:
