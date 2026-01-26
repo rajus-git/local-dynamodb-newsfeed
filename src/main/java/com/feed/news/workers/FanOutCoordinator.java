@@ -39,7 +39,9 @@ public class FanOutCoordinator {
     }
 
     @KafkaListener(topics = "${feed.topics.post-created}")
-    public void handle(PostCreatedEvent event) throws Exception {
+    public void handle(String message) throws Exception {
+        PostCreatedEvent event =
+                objectMapper.readValue(message, PostCreatedEvent.class);
 
         Iterator<Page<Follow>> pages =
                 followRepository.iterateFollowersOf(event.getCreatorId());
