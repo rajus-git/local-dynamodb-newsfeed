@@ -3,6 +3,8 @@ package com.feed.news.service;
 import java.time.Instant;
 import java.util.*;
 
+import com.feed.news.events.PostCreatedEvent;
+import com.feed.news.events.PostEventPublisher;
 import com.feed.news.repository.PagedResult;
 import org.springframework.stereotype.Service;
 
@@ -23,14 +25,17 @@ public class PostService {
     private final PostRepository postRepository;
     private final FollowRepository followRepository;
     private final PrecomputedFeedRepository feedRepository;
+    private final PostEventPublisher eventPublisher;
 
     public PostService(
             PostRepository postRepository,
             FollowRepository followRepository,
-            PrecomputedFeedRepository feedRepository) {
+            PrecomputedFeedRepository feedRepository,
+            PostEventPublisher eventPublisher) {
         this.postRepository = postRepository;
         this.followRepository = followRepository;
         this.feedRepository = feedRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     public PagedResult<Post> getFeed(String userId, int limit, String nextToken) {
@@ -67,7 +72,16 @@ public class PostService {
         postRepository.save(post);
 
         // 2) Fan-out (paged + batched)
-        fanOutToFollowers(post);
+//        fanOutToFollowers(post);
+
+        // Publish event instead of fan-out
+        eventPublisher.publish(
+                new PostCreatedEvent(
+                        post.getId(),
+                        post.getCreatorId(),
+                        post.getCreatedAt()
+                )
+        );
 
         return post;
     }
