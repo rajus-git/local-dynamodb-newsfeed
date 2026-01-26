@@ -1,0 +1,32 @@
+meta {
+  name: Get Feed (Pagination)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/feed/{{userB}}?limit=2&nextToken={{nextToken}}
+  body: none
+  auth: none
+}
+
+params:query {
+  limit: 2
+  nextToken: {{nextToken}}
+}
+
+tests {
+  test("Paginated feed fetched", function () {
+      expect(res.getStatus()).to.equal(200)
+  
+      const body = res.getBody()
+  
+      // Update token for the NEXT page
+      if (body.nextToken) {
+        bru.setEnvVar("nextToken", body.nextToken)
+      } else {
+        // No more pages — clear token
+        bru.setEnvVar("nextToken", "")
+      }
+    })
+}

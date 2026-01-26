@@ -1,0 +1,24 @@
+meta {
+  name: Create Post (User A)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/posts
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "creatorId": "{{userA}}",
+    "content": "Hello from Bruno"
+  }
+}
+
+tests {
+  test("Post created", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
