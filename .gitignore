@@ -33,5 +33,5 @@ build/
 .vscode/
 
 ### Docker ###
-docker/shared-local-instance.db # DynamoDB Local's volume where it keeps data
-docker/redis/dump.rdb # Redis' dump
+docker/dynamodb/shared-local-instance.db
+docker/redis/dump.rdb
