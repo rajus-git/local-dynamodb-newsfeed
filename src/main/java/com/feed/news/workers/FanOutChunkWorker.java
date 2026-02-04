@@ -8,17 +8,25 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+
+import java.util.concurrent.TimeUnit;
+
 @Component
 public class FanOutChunkWorker {
 
     private final PrecomputedFeedRepository feedRepository;
     private final ObjectMapper objectMapper;
+    private final MeterRegistry meterRegistry;
 
     public FanOutChunkWorker(
             PrecomputedFeedRepository feedRepository,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            MeterRegistry meterRegistry) {
         this.feedRepository = feedRepository;
         this.objectMapper = objectMapper;
+        this.meterRegistry = meterRegistry;
     }
 
     @KafkaListener(topics = "${feed.topics.fanout-chunk}")
@@ -40,6 +48,18 @@ public class FanOutChunkWorker {
 
             // Idempotent write
             feedRepository.putIfAbsent(feedItem);
+
+            if (event.getEventTime() > 0) {
+                long latencyMillis =
+                        System.currentTimeMillis() - event.getEventTime();
+
+                Timer.builder("feed.propagation.seconds")
+                        .description("End-to-end feed propagation latency")
+                        .tag("source", "fanout")
+                        .tag("result", "success")
+                        .register(meterRegistry)
+                        .record(latencyMillis, TimeUnit.MILLISECONDS);
+            }
         }
     }
 }

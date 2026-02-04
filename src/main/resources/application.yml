@@ -32,3 +32,6 @@ management:
         http:
           server:
             requests: true
+        feed:
+          propagation:
+            seconds: true

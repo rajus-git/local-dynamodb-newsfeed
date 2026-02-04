@@ -79,7 +79,8 @@ public class PostService {
                 new PostCreatedEvent(
                         post.getId(),
                         post.getCreatorId(),
-                        post.getCreatedAt()
+                        post.getCreatedAt(),
+                        Instant.now().toEpochMilli()
                 )
         );
 

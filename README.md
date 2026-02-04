@@ -40,3 +40,10 @@ A simple local development stack for a Spring Boot REST API that connects to **D
 
 ## Stop everything
     docker compose down
+
+## Portals
+  Kafka-UI http://localhost:8082/
+
+  Prometheus http://localhost:9090/
+
+  Grafana http://localhost:3000/

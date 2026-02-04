@@ -72,6 +72,7 @@ public class FanOutCoordinator {
                         event.getPostId(),
                         event.getCreatorId(),
                         event.getCreatedAt(),
+                        event.getEventTime(),
                         List.copyOf(followerIds)
                 );
 
