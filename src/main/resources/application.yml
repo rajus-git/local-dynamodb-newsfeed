@@ -27,3 +27,8 @@ management:
   metrics:
     tags:
       application: newsfeed-api
+    distribution:
+      percentiles-histogram:
+        http:
+          server:
+            requests: true
