@@ -5,6 +5,7 @@ import com.feed.news.events.FanOutChunkEvent;
 import com.feed.news.repository.PrecomputedFeedRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.slf4j.MDC;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
@@ -13,6 +14,9 @@ import io.micrometer.core.instrument.Timer;
 
 import java.util.concurrent.TimeUnit;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Component
 public class FanOutChunkWorker {
 
@@ -31,35 +35,45 @@ public class FanOutChunkWorker {
 
     @KafkaListener(topics = "${feed.topics.fanout-chunk}")
     public void handle(String message) throws Exception {
+        try {
+            FanOutChunkEvent event =
+                    objectMapper.readValue(message, FanOutChunkEvent.class);
 
-        FanOutChunkEvent event =
-                objectMapper.readValue(message, FanOutChunkEvent.class);
+            MDC.put("postId", event.getPostId());
+            MDC.put("creatorId", event.getCreatorId());
+            MDC.put("eventTime", String.valueOf(event.getEventTime()));
 
-        for (String followerId : event.getFollowerIds()) {
+            log.info("Processing fanout chunk");
 
-            PrecomputedFeed feedItem = new PrecomputedFeed();
-            feedItem.setUserId(followerId);
-            feedItem.setPostId(event.getPostId());
-            feedItem.setCreatorId(event.getCreatorId());
-            feedItem.setSortKey(
-                    event.getCreatedAt().toEpochMilli()
-                            + "#" + event.getPostId()
-            );
+            for (String followerId : event.getFollowerIds()) {
 
-            // Idempotent write
-            feedRepository.putIfAbsent(feedItem);
+                PrecomputedFeed feedItem = new PrecomputedFeed();
+                feedItem.setUserId(followerId);
+                feedItem.setPostId(event.getPostId());
+                feedItem.setCreatorId(event.getCreatorId());
+                feedItem.setSortKey(
+                        event.getCreatedAt().toEpochMilli()
+                                + "#" + event.getPostId()
+                );
 
-            if (event.getEventTime() > 0) {
-                long latencyMillis =
-                        System.currentTimeMillis() - event.getEventTime();
+                // Idempotent write
+                feedRepository.putIfAbsent(feedItem);
 
-                Timer.builder("feed.propagation.seconds")
-                        .description("End-to-end feed propagation latency")
-                        .tag("source", "fanout")
-                        .tag("result", "success")
-                        .register(meterRegistry)
-                        .record(latencyMillis, TimeUnit.MILLISECONDS);
+                if (event.getEventTime() > 0) {
+                    long latencyMillis =
+                            System.currentTimeMillis() - event.getEventTime();
+
+                    Timer.builder("feed.propagation.seconds")
+                            .description("End-to-end feed propagation latency")
+                            .tag("source", "fanout")
+                            .tag("result", "success")
+                            .register(meterRegistry)
+                            .record(latencyMillis, TimeUnit.MILLISECONDS);
+                }
             }
+        }
+        finally {
+            MDC.clear();
         }
     }
 }
