@@ -18,12 +18,16 @@ services:
       - AWS_ACCESS_KEY_ID=dummy
       - AWS_SECRET_ACCESS_KEY=dummy
       - AWS_REGION=us-east-1
-      # point to docker service name!
-      - SPRING_CLOUD_AWS_DYNAMODB_ENDPOINT=http://dynamodb-local:8000
-      # or if using pure aws-sdk-v2:
-      # - aws.dynamodb.endpoint=http://dynamodb-local:8000
+      # point to docker service name
+      - aws.dynamodb.endpoint=http://dynamodb-local:8000
+      # set profile to local for now to run identical as native
+      - SPRING_PROFILES_ACTIVE=local
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+
     depends_on:
       - dynamodb-local
+      - kafka
+      - kafka-ui
 
   nginx:
     image: nginx:alpine
@@ -106,6 +110,22 @@ services:
       - "3000:3000"
     volumes:
       - grafana-data:/var/lib/grafana
+
+  loki:
+    image: grafana/loki:3.6.4
+    container_name: loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+
+  promtail:
+    image: grafana/promtail:3.6.4
+    container_name: promtail
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./docker/promtail/promtail.yaml:/etc/promtail/promtail.yaml:ro
+    command: -config.file=/etc/promtail/promtail.yaml
+
 volumes:
   kafka-data:
   grafana-data:
